@@ -3,6 +3,8 @@ Improving the accuracy of a regression model
 Chad Allison
 2022-11-23
 
+[article](https://towardsdatascience.com/how-to-improve-the-accuracy-of-a-regression-model-3517accf8604)
+
 ``` r
 # importing the data
 df = read_csv("https://raw.githubusercontent.com/sacharya225/data-expts/master/Health%20Insurance%20Cost%20Prediction/insurance.csv",

@@ -5,6 +5,8 @@ date: '2022-11-23'
 output: github_document
 ---
 
+[article](https://towardsdatascience.com/how-to-improve-the-accuracy-of-a-regression-model-3517accf8604)
+
 ```{r include = F}
 # loading required libraries
 library(tidyverse)
