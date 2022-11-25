@@ -44,7 +44,7 @@ df |>
   pairs()
 ```
 
-![](healthcare_accuracy_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 ``` r
 # creating plots for categorical variables
@@ -98,7 +98,7 @@ region_counts_plot = df |>
 sex_counts_plot + smoker_counts_plot + children_counts_plot + region_counts_plot
 ```
 
-![](healthcare_accuracy_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 ``` r
 # visualising distribution of charges among categorical variable values
@@ -147,4 +147,53 @@ charges_region_plot = df |>
 charges_sex_plot + charges_smoker_plot + charges_children_plot + charges_region_plot
 ```
 
-![](healthcare_accuracy_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+
+``` r
+# making more plots showing distribution of charges for smoker and children
+charges_smoker_density = df |>
+  ggplot(aes(charges)) +
+  geom_density(aes(fill = smoker), col = "transparent", alpha = 0.8) +
+  scale_fill_manual(values = c("#BEDFC1", "#FFC2B9")) +
+  theme_classic() +
+  labs(title = "density curves of charges v. smoker") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_blank())
+
+charges_children_density = df |>
+  ggplot(aes(charges)) +
+  geom_density(aes(fill = factor(children)), col = "transparent", alpha = 0.25) +
+  theme_classic() +
+  labs(title = "density curves of charges v. children",
+       fill = "children") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_blank())
+```
+
+``` r
+# putting density curve plots together with patchwork
+charges_smoker_density / charges_children_density
+```
+
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+
+``` r
+# additional visual of charges among values of children
+df |>
+  mutate(children = factor(children)) |>
+  group_by(children) |>
+  summarise(charges = sum(charges),
+            n = n()) |>
+  mutate(prop = round(n / sum(n), 3),
+         charges_prop = round(charges / sum(charges), 3)) |>
+  select(children, prop, charges_prop) |>
+  pivot_longer(!children, names_to = "prop_type", values_to = "value") |>
+  ggplot(aes(children, value)) +
+  geom_col(aes(fill = prop_type), position = "dodge") +
+  scale_fill_manual(values = c("#BEDFC1", "#D2BEDF")) +
+  labs(fill = "proportion type",
+       title = "charges are higher than expected for observations with 2, 3, or 4 children") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
