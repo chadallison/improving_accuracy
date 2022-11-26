@@ -179,7 +179,7 @@ charges_smoker_density / charges_children_density
 
 ``` r
 # additional visual of charges among values of children
-df |>
+charges_prop_plot = df |>
   mutate(children = factor(children)) |>
   group_by(children) |>
   summarise(charges = sum(charges),
@@ -188,12 +188,34 @@ df |>
          charges_prop = round(charges / sum(charges), 3)) |>
   select(children, prop, charges_prop) |>
   pivot_longer(!children, names_to = "prop_type", values_to = "value") |>
+  mutate(prop_type = ifelse(prop_type == "prop", "observations", "charges")) |>
   ggplot(aes(children, value)) +
   geom_col(aes(fill = prop_type), position = "dodge") +
+  geom_text(aes(label = value, group = prop_type), position = position_dodge(width = 1), vjust = -0.5, size = 3) +
   scale_fill_manual(values = c("#BEDFC1", "#D2BEDF")) +
   labs(fill = "proportion type",
-       title = "charges are higher than expected for observations with 2, 3, or 4 children") +
-  theme(plot.title = element_text(hjust = 0.5))
+       title = "charges are higher for observations with 2, 3, or 4 children") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_blank())
+
+charges_prop_plot
 ```
 
 <img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+
+``` r
+# building a correlation heatmap with ggcorrplot package
+df |>
+  select(where(is.numeric)) |>
+  cor() |>
+  ggcorrplot(type = "lower",
+             outline.color = "black",
+             legend.title = "correlation",
+             title = "correlation plot of numeric variables",
+             colors = c("indianred3", "white", "springgreen4"),
+             lab = T,
+             hc.order = T) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
