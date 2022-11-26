@@ -205,7 +205,7 @@ charges_prop_plot
 
 ``` r
 # building a correlation heatmap with ggcorrplot package
-df |>
+corr_plot = df |>
   select(where(is.numeric)) |>
   cor() |>
   ggcorrplot(type = "lower",
@@ -216,6 +216,10 @@ df |>
              lab = T,
              hc.order = T) +
   theme(plot.title = element_text(hjust = 0.5))
+
+suppressMessages(ggsave("corr_plot.png", corr_plot))
 ```
 
-<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+![](corr_plot.png)
+
+### go back and adjust pairwise plot
