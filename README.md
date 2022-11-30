@@ -386,4 +386,63 @@ are commonly used to evaluate regression models.
 
 ``` r
 # here is where i will do ^^^
+mod1 = lm(charges ~ smoker + age + bmi + children, data = df)
+mod2 = lm(charges ~ smoker + age + bmi + children + region, data = df)
+mod3 = lm(charges ~ smoker + age + bmi + children + sex, data = df)
+mod4 = lm(charges ~ ., data = df)
+
+model_summaries = data.frame(model = c("anova", "region", "sex", "full"),
+           mae = c(MAE(mod1$fitted.values, df$charges),
+                   MAE(mod2$fitted.values, df$charges),
+                   MAE(mod3$fitted.values, df$charges),
+                   MAE(mod4$fitted.values, df$charges)),
+           rmse = c(RMSE(mod1$fitted.values, df$charges),
+                    RMSE(mod2$fitted.values, df$charges),
+                    RMSE(mod3$fitted.values, df$charges),
+                    RMSE(mod4$fitted.values, df$charges)),
+           rsq = c(summary(mod1)[[8]], summary(mod2)[[8]], summary(mod3)[[8]], summary(mod4)[[8]]),
+           adj_rsq = c(summary(mod1)[[9]], summary(mod2)[[9]], summary(mod3)[[9]], summary(mod4)[[9]]))
+
+model_summaries |>
+  mutate(mae = round(mae, 4),
+         rmse = round(rmse, 4),
+         rsq = round(rsq, 4),
+         adj_rsq = round(adj_rsq, 4))
 ```
+
+    ##    model      mae     rmse    rsq adj_rsq
+    ## 1  anova 4182.195 6043.477 0.7508  0.7493
+    ## 2 region 4174.371 6029.482 0.7519  0.7499
+    ## 3    sex 4182.679 6043.161 0.7508  0.7491
+    ## 4   full 4173.988 6029.149 0.7519  0.7497
+
+The rankings (from best to worst) for each of the metrics among the
+different models are as follows:
+
+`MAE`
+
+1.  Full model
+2.  Region model
+3.  ANOVA model
+4.  Sex model
+
+`RMSE`
+
+1.  Full model
+2.  Region model
+3.  Sex model
+4.  ANOVA model
+
+`RSQ`
+
+1.  ANOVA model
+2.  Sex model
+3.  Region model
+4.  Full model
+
+`ADJ RSQ`
+
+1.  Sex model
+2.  ANOVA model
+3.  Full model
+4.  Region Model
