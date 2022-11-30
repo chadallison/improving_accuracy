@@ -38,10 +38,10 @@ colSums(is.na(df))
     ##        0        0        0        0        0        0        0
 
 ``` r
-# pairwise plots for numeric variables
+# pairwise plots for numeric variables using GGally
 df |>
-  select(where(is.numeric)) |>
-  pairs()
+  dplyr::select(where(is.numeric)) |>
+  ggpairs()
 ```
 
 <img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
@@ -205,7 +205,7 @@ charges_prop_plot
 
 ``` r
 # building a correlation heatmap with ggcorrplot package
-corr_plot = df |>
+df |>
   select(where(is.numeric)) |>
   cor() |>
   ggcorrplot(type = "lower",
@@ -216,10 +216,174 @@ corr_plot = df |>
              lab = T,
              hc.order = T) +
   theme(plot.title = element_text(hjust = 0.5))
-
-suppressMessages(ggsave("corr_plot.png", corr_plot))
 ```
 
-![](corr_plot.png)
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
-### go back and adjust pairwise plot
+``` r
+# visualising distribution of sex among all smokers
+df |>
+  filter(smoker == "yes") |>
+  count(sex) |>
+  ggplot(aes(sex, n)) +
+  geom_col(aes(fill = sex)) +
+  scale_fill_manual(values = c("#FFD2FE", "#C7DBFF")) +
+  geom_text(aes(label = n), vjust = -0.5, size = 3.5) +
+  theme_classic() +
+  labs(x = NULL, y = "count",
+       title = "among smokers, there are more males than females") +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.y = element_blank())
+```
+
+<img src="healthcare_accuracy_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+
+------------------------------------------------------------------------
+
+a few observations:
+
+- males & females are roughly equal when it comes to median charges, but
+  the range of values is larger for males
+- charges appear to be significantly higher for smokers
+- charges appear to be highest for people with 2 or 3 children
+- customers are roughly equally distribution among the four regions and
+  charges appear to be roughly the same among the four
+- among smokers in the data, we have 159 males compared to 115 females
+
+------------------------------------------------------------------------
+
+### Preparation for modeling
+
+``` r
+# converting variables to factors
+df = df |>
+  mutate(sex = factor(sex),
+         children = factor(children),
+         smoker = factor(smoker),
+         region = factor(region))
+```
+
+Note that despite taking numeric values, `children` has been converted
+to a factor because it is not truly a continuous variable.
+
+``` r
+model_formula = charges ~ .
+lmMod = lm(model_formula, data = df)
+
+relImportance = relaimpo::calc.relimp(lmMod, type = "lmg",  rela = F)
+
+# relative importances
+sort(round(relImportance$lmg, 3), decreasing = T)
+```
+
+    ##   smoker      age      bmi children   region      sex 
+    ##    0.619    0.089    0.032    0.007    0.003    0.002
+
+I will now perform a series of ANOVA tests to see what the best
+predictor variables will be for our model.
+
+``` r
+# experimenting with different models based on feature importance
+mod1 = lm(charges ~ smoker, data = df)
+mod2 = lm(charges ~ smoker + age, data = df)
+
+anova(mod1, mod2)
+```
+
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: charges ~ smoker
+    ## Model 2: charges ~ smoker + age
+    ##   Res.Df         RSS Df   Sum of Sq      F                Pr(>F)    
+    ## 1   1336 74554317947                                                
+    ## 2   1335 54623951146  1 19930366800 487.09 < 0.00000000000000022 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+This tells us the model with both `smoker` and `age` as predictors is
+better than the model with only `smoker` as a predictor.
+
+``` r
+mod1 = lm(charges ~ smoker + age, data = df)
+mod2 = lm(charges ~ smoker + age + bmi, data = df)
+
+anova(mod1, mod2)
+```
+
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: charges ~ smoker + age
+    ## Model 2: charges ~ smoker + age + bmi
+    ##   Res.Df         RSS Df  Sum of Sq      F                Pr(>F)    
+    ## 1   1335 54623951146                                               
+    ## 2   1334 49511575723  1 5112375423 137.74 < 0.00000000000000022 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+This tells us our model is also improved when we add `bmi` as a
+predictor.
+
+``` r
+mod1 = lm(charges ~ smoker + age + bmi, data = df)
+mod2 = lm(charges ~ smoker + age + bmi + children, data = df)
+
+anova(mod1, mod2)
+```
+
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: charges ~ smoker + age + bmi
+    ## Model 2: charges ~ smoker + age + bmi + children
+    ##   Res.Df         RSS Df Sum of Sq      F   Pr(>F)   
+    ## 1   1334 49511575723                                
+    ## 2   1329 48868594875  5 642980848 3.4972 0.003814 **
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+This tells us our model is better when we include `children` as a
+predictor.
+
+``` r
+mod1 = lm(charges ~ smoker + age + bmi + children, data = df)
+mod2 = lm(charges ~ smoker + age + bmi + children + region, data = df)
+
+anova(mod1, mod2)
+```
+
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: charges ~ smoker + age + bmi + children
+    ## Model 2: charges ~ smoker + age + bmi + children + region
+    ##   Res.Df         RSS Df Sum of Sq      F Pr(>F)
+    ## 1   1329 48868594875                           
+    ## 2   1326 48642527382  3 226067493 2.0542 0.1045
+
+This tells us that adding `region` as a predictor does not improve our
+model.
+
+``` r
+mod1 = lm(charges ~ smoker + age + bmi + children, data = df)
+mod2 = lm(charges ~ smoker + age + bmi + children + sex, data = df)
+
+anova(mod1, mod2)
+```
+
+    ## Analysis of Variance Table
+    ## 
+    ## Model 1: charges ~ smoker + age + bmi + children
+    ## Model 2: charges ~ smoker + age + bmi + children + sex
+    ##   Res.Df         RSS Df Sum of Sq      F Pr(>F)
+    ## 1   1329 48868594875                           
+    ## 2   1328 48863492609  1   5102266 0.1387 0.7097
+
+Similarly, this tells us that including `sex` as a predictor does not
+improve our model either. Based on our ANOVA tests, our best model has
+the formula of `charges ~ smoker + age + bmi + children`. However, to
+ensure our model is performing well, I will test that model’s
+performance against one with all features included based on metrics such
+as mean absolute error (MAE) and root mean squared error (RMSE), which
+are commonly used to evaluate regression models.
+
+``` r
+# here is where i will do ^^^
+```
